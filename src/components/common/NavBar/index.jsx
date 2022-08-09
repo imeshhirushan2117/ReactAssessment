@@ -42,7 +42,7 @@ class NavBar extends Component {
                       aria-label="Nav Tabs" TabIndicatorProps={{style: {background: '#DCD7C9'}}}>
                     <Tab label="Dashboard" component={Link} to={'/dashboard'} sx={{color: '#eceaea'}}/>
                     <Tab label="Product" component={Link} to={'/product'} sx={{color: '#eceaea'}}/>
-                    <Tab label="Cart" component={Link} to={'/dashboard'} sx={{color: '#eceaea'}}/>
+                    <Tab label="Cart" component={Link} to={'/cart'} sx={{color: '#eceaea'}}/>
                 </Tabs>
                 <div className="flex w-1/12 justify-end gap-3">
                     <CommonButton
@@ -70,7 +70,7 @@ class NavBar extends Component {
                     </div>
                 </DialogTitle>
                 <DialogContent dividers>
-                   <Login></Login>
+                   <Login/>
                 </DialogContent>
             </Dialog>
         </AppBar>);

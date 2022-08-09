@@ -3,32 +3,44 @@ import {Grid, MenuItem} from "@mui/material";
 import Typography from "@mui/material/Typography";
 import {TextValidator, ValidatorForm} from "react-material-ui-form-validator";
 import CommonButton from "../../components/common/Button";
-import Button from "@mui/material/Button";
-import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import {styleSheet} from "./styles";
 import {withStyles} from "@mui/styles";
 import CustomSnackBar from "../../components/common/SnakBar";
 import ProductService from "../../services/ProductService";
+import {DesktopDatePicker, LocalizationProvider} from "@mui/x-date-pickers";
+import {AdapterMoment} from '@mui/x-date-pickers/AdapterMoment';
+import UserService from "../../services/UserService";
+import CartService from "../../services/CartService";
 
-class Product extends Component {
+class Cart extends Component {
 
     constructor(props) {
         super(props);
         this.state = {
             formData: {
-                title: '', category: '', price: '', description: ''
-            }, categoryData: [],
+                username: '',
+                category: [],
+                selectedDate:new Date(),
+                qty: '',
 
-            alert: false, message: '', severity: '',
+            },
+            categoryData: [],
+            userData: [],
 
-            file: null, img: null
+            alert: false,
+            message: '',
+            severity: '',
         };
     }
 
     clearFields = () => {
         this.setState({
             formData: {
-                title: '', category: '', price: '', description: ''
+                username: '',
+                category: '',
+                selectedDate:new Date(),
+                qty: '',
+
             }, file: null, img: null
         })
     }
@@ -43,20 +55,31 @@ class Product extends Component {
         console.log('cat', this.state.categoryData)
     }
 
-    handleSubmit = async () => {
-        console.log("hi")
-        if (this.state.file == null) {
-            this.setState({
-                alert: true, message: "Please Select Image", severity: 'error'
+    fetchUsernameForSelect = async () => {
+        const res = await UserService.fetchUsers();
+        const userData = [];
+        if (res.status === 200) {
+            res.data.map((value)=>{
+                let user={
+                    id:value.id,
+                    userName:value.username,
+                }
+                userData.push(user)
             })
-            return;
+            this.setState({
+                userData: userData
+            })
         }
-        let formDate = this.state.formData
+        console.log('user', this.state.userData)
+    }
 
-        let res = await ProductService.addProduct(formDate)
+    handleSubmit = async () => {
+        let formDate = this.state.formData
+        let res = await CartService.addCart(formDate)
+
         if (res.status === 200) {
             this.setState({
-                alert: true, message: 'Product Saved!', severity: 'success'
+                alert: true, message: 'Cart Saved!', severity: 'success'
             })
             this.clearFields();
         } else {
@@ -64,15 +87,15 @@ class Product extends Component {
                 alert: true, message: res.message, severity: 'error'
             })
         }
-
+        console.log("submit",this.state.formData)
     };
 
     handleChange = (event) => {
         let id = event.target.name;
         switch (id) {
-            case "title":
-                const title = event.target.value;
-                this.setState(Object.assign(this.state.formData, {title: title}));
+            case "username":
+                const username = event.target.value;
+                this.setState(Object.assign(this.state.formData, {username: username}));
                 break;
 
             case "category":
@@ -80,14 +103,9 @@ class Product extends Component {
                 this.setState(Object.assign(this.state.formData, {category: category}));
                 break;
 
-            case "price":
-                const price = event.target.value;
-                this.setState(Object.assign(this.state.formData, {price: price}));
-                break;
-
-            case "description":
-                const description = event.target.value;
-                this.setState(Object.assign(this.state.formData, {description: description}));
+            case "qty":
+                const qty = event.target.value;
+                this.setState(Object.assign(this.state.formData, {qty: qty}));
                 break;
 
             default:
@@ -95,16 +113,15 @@ class Product extends Component {
         }
     };
 
-    handleFile(e) {
-        let file = e.target.files[0]
-        this.setState({img: URL.createObjectURL(e.target.files[0])})
-        this.setState({
-            file: file
-        })
+    handleChangeDate = (newValue) => {
+        console.log(newValue)
+        this.setState(Object.assign(this.state.formData, {selectedDate: newValue}));
     }
+
 
     async componentDidMount() {
         await this.fetchCategoryForSelect();
+        await this.fetchUsernameForSelect();
     }
 
     render() {
@@ -113,7 +130,7 @@ class Product extends Component {
             <Grid container justifyContent={"center"} className={'h-screen bg-red-000 pt-28 px-10'}>
                 <Grid container item direction={"column"} xs={12} gap={5} className={'bg-red-000'}>
                     <Grid item container justifyContent={"center"}>
-                        <Typography variant={'h3'} textAlign={"center"}>Product Manager</Typography>
+                        <Typography variant={'h3'} textAlign={"center"}>Cart Manager</Typography>
                     </Grid>
                     <Grid item container justifyContent={"center"}>
                         <ValidatorForm
@@ -126,15 +143,23 @@ class Product extends Component {
                             >
                                 <Grid item container direction={'column'} xs={12} sm={10} md={6} gap={'15px'}>
                                     <TextValidator
-                                        label="Title"
+                                        select
+                                        label="User Name"
+                                        name="username"
                                         onChange={this.handleChange}
-                                        name="title"
-                                        value={this.state.formData.title}
+                                        value={this.state.formData.username}
                                         validators={["required"]}
                                         errorMessages={["This field is required"]}
                                         className="w-full"
                                         style={{minWidth: '100%'}}
-                                    />
+                                    >
+                                        {this.state.userData.map((option) => (
+                                            console.log(option),
+                                                <MenuItem key={option.id} value={option.id}>
+                                                    {option.userName}
+                                                </MenuItem>))}
+                                    </TextValidator>
+
                                     <TextValidator
                                         select
                                         label="Category"
@@ -150,58 +175,38 @@ class Product extends Component {
                                             {option}
                                         </MenuItem>))}
                                     </TextValidator>
+                                    <LocalizationProvider dateAdapter={AdapterMoment}>
+                                        <DesktopDatePicker
+                                            disablePast={true}
+                                            showToolbar={false}
+                                            label="Date"
+                                            inputFormat="MM/D/yyyy"
+                                            value={this.state.formData.selectedDate}
+                                            onChange={this.handleChangeDate}
+                                            renderInput={(params) => <TextValidator {...params} name='date' className={'w-full'}/>}
+
+                                        />
+                                    </LocalizationProvider>
 
                                     <TextValidator
-                                        label="Price"
+                                        label="Qty"
                                         onChange={this.handleChange}
-                                        name="price"
-                                        value={this.state.formData.price}
+                                        name="qty"
+                                        value={this.state.formData.qty}
                                         validators={["required"]}
                                         errorMessages={["This field is required"]}
                                         className="w-full"
+                                        type={'number'}
                                         style={{minWidth: '100%'}}
-                                    />
-                                    <TextValidator
-                                        label="Description"
-                                        onChange={this.handleChange}
-                                        name="description"
-                                        value={this.state.formData.description}
-                                        validators={["required"]}
-                                        errorMessages={["This field is required"]}
-                                        className="w-full"
-                                        style={{minWidth: '100%'}}
-                                        multiline
                                     />
                                 </Grid>
-                                <Grid container direction={'row'} xs={12} sm={10} md={6} gap={2}
-                                      sx={{height: '150px'}}
-                                      justifyContent={'space-between'}>
-                                    <Grid container flexGrow={1} item
-                                          className={'border w-28 bg-contain bg-center bg-no-repeat rou'}
-                                          style={{backgroundImage: `url(${this.state.img})`}}
-                                    >
-                                    </Grid>
-                                    <Grid container flexGrow={2} item className={'border w-28'}>
-                                        <Button
-                                            component="label"
-                                            variant="outlined"
-                                            startIcon={<AddPhotoAlternateIcon /*className={classes.icon}*//>}
-                                            sx={{marginRight: "1rem"}}
-                                            className={classes.btnUpload}
-                                        >
-                                            Upload Image
-                                            <input type="file" accept="image/*" hidden
-                                                   onChange={(e) => this.handleFile(e)}/>
-                                        </Button>
-                                    </Grid>
 
-                                </Grid>
                                 <Grid container direction={'row'} xs={12} sm={10} md={6} gap={'15px'}
                                       justifyContent={'center'}>
                                     <CommonButton
                                         size="large"
                                         variant="contained"
-                                        label='Add'
+                                        label='Save'
                                         type="submit"
                                         className="text-white bg-blue-500 font-bold tracking-wide"
                                         style={{backgroundColor: 'rgba(25, 118, 210, 0.95)', width: '100%'}}
@@ -235,4 +240,4 @@ class Product extends Component {
     }
 }
 
-export default withStyles(styleSheet)(Product);
+export default withStyles(styleSheet)(Cart);
